@@ -214,7 +214,7 @@ export async function registerGuest(
     return { success: false, error: "Inscription impossible. Ce lien a peut-etre deja ete utilise." }
   }
 
-  redirect('/login?registered=1')
+  return { success: true }
 }
 
 // ============================================================
