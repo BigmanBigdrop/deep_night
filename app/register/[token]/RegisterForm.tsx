@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState } from 'react'
 import { registerGuest } from '@/app/actions'
 import { createSupabaseClient } from '@/lib/supabase/client'
 import type { ActionResult } from '@/lib/types'
+import Spinner from '@/components/Spinner'
 
 const initialState: ActionResult = { success: false, error: '' }
 
@@ -148,7 +149,7 @@ export default function RegisterForm({ token }: { token: string }) {
       <button type="submit" disabled={pending}
         className="w-full bg-brand hover:bg-brand-light disabled:opacity-40 text-black font-bold rounded-xl px-4 py-4 transition-colors text-base"
       >
-        {pending ? 'Inscription en cours...' : "Je m'inscris"}
+        {pending ? <><Spinner size="sm" className="mr-2" />Inscription en cours...</> : "Je m'inscris"}
       </button>
 
       <p className="text-white/20 text-xs text-center">

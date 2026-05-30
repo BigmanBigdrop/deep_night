@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react'
 import { submitDrinkSurvey } from '@/app/actions'
 import { DRINK_OPTIONS } from '@/lib/types'
 import type { ActionResult } from '@/lib/types'
+import Spinner from '@/components/Spinner'
 
 const initialState: ActionResult = { success: false, error: '' }
 
@@ -80,7 +81,7 @@ export default function DrinkSurveyForm() {
         disabled={pending}
         className="w-full bg-brand hover:bg-brand-light disabled:opacity-40 text-black font-bold rounded-xl px-4 py-4 transition-colors"
       >
-        {pending ? 'Enregistrement...' : 'Valider mes préférences'}
+        {pending ? <><Spinner size="sm" className="mr-2" />Enregistrement...</> : 'Valider mes préférences'}
       </button>
     </form>
   )

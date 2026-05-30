@@ -4,6 +4,7 @@ import { useActionState } from 'react'
 import Image from 'next/image'
 import { loginAdmin } from '@/app/actions'
 import type { ActionResult } from '@/lib/types'
+import Spinner from '@/components/Spinner'
 
 const initialState: ActionResult = { success: false, error: '' }
 
@@ -67,7 +68,7 @@ export default function AdminLoginPage() {
             disabled={pending}
             className="w-full bg-brand hover:bg-brand-light disabled:opacity-50 text-black font-semibold rounded-xl px-4 py-3.5 transition-colors"
           >
-            {pending ? 'Connexion...' : 'Se connecter'}
+            {pending ? <><Spinner size="sm" className="mr-2" />Connexion...</> : 'Se connecter'}
           </button>
         </form>
       </div>

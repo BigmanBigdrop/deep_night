@@ -7,6 +7,7 @@ import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import { loginGuest } from '@/app/actions'
 import type { ActionResult } from '@/lib/types'
+import Spinner from '@/components/Spinner'
 
 const initialState: ActionResult = { success: false, error: '' }
 
@@ -93,7 +94,7 @@ function LoginForm() {
           disabled={pending}
           className="w-full bg-brand hover:bg-brand-light disabled:opacity-40 text-black font-bold rounded-xl px-4 py-4 transition-colors"
         >
-          {pending ? 'Connexion...' : 'Accéder à mon espace'}
+          {pending ? <><Spinner size="sm" className="mr-2" />Connexion...</> : 'Accéder à mon espace'}
         </button>
       </form>
 
