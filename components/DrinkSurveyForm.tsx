@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useState } from 'react'
+import { useActionState } from 'react'
 import { submitDrinkSurvey } from '@/app/actions'
 import { DRINK_OPTIONS } from '@/lib/types'
 import type { ActionResult } from '@/lib/types'
@@ -16,7 +16,6 @@ const CATEGORY_LABELS = {
 
 export default function DrinkSurveyForm() {
   const [state, action, pending] = useActionState(submitDrinkSurvey, initialState)
-  const [wantsShots, setWantsShots] = useState(false)
 
   if (pending) {
     return (
@@ -60,24 +59,22 @@ export default function DrinkSurveyForm() {
         )
       )}
 
-      {/* Shots */}
+      {/* Shots — checkbox non-contrôlé pour compatibilité mobile */}
       <div>
         <p className="text-white/70 text-xs font-semibold uppercase tracking-wider mb-3">Shots</p>
-        <label className="flex items-center gap-3 bg-white/3 border border-white/8 rounded-xl px-4 py-3.5 cursor-pointer hover:border-white/20 has-checked:border-white/25 has-checked:bg-white/5 transition-colors">
+        <label className="flex items-center gap-3 bg-white/3 border border-white/8 rounded-xl px-4 py-3.5 cursor-pointer has-checked:border-brand/40 has-checked:bg-brand/5 transition-colors">
           <input
             type="checkbox"
             name="drink_wants_shots"
             value="true"
-            checked={wantsShots}
-            onChange={(e) => setWantsShots(e.target.checked)}
-            className="accent-white w-4 h-4 shrink-0"
+            defaultChecked={false}
+            className="w-5 h-5 shrink-0 rounded accent-brand"
           />
           <div>
             <p className="text-white font-medium text-sm">Je veux des shots</p>
             <p className="text-white/30 text-xs">On va s&apos;en occuper pour toi</p>
           </div>
         </label>
-        <input type="hidden" name="drink_wants_shots" value="false" />
       </div>
 
       {!state.success && state.error && (
@@ -88,10 +85,9 @@ export default function DrinkSurveyForm() {
 
       <button
         type="submit"
-        disabled={pending}
-        className="w-full bg-brand hover:bg-brand-light disabled:opacity-40 text-black font-bold rounded-xl px-4 py-4 transition-colors"
+        className="w-full bg-brand hover:bg-brand-light text-black font-bold rounded-xl px-4 py-4 transition-colors"
       >
-        {pending ? <><Spinner size="sm" className="mr-2" />Enregistrement...</> : 'Valider mes préférences'}
+        Valider mes préférences
       </button>
     </form>
   )

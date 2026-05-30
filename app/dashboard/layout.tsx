@@ -3,6 +3,8 @@ import Image from 'next/image'
 import { createSupabaseServer } from '@/lib/supabase/server'
 import { logoutGuest } from '@/app/actions'
 
+export const dynamic = 'force-dynamic'
+
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createSupabaseServer()
   const { data: { user } } = await supabase.auth.getUser()

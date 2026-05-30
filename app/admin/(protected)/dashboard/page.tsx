@@ -84,12 +84,25 @@ export default async function AdminDashboardPage() {
                 className="flex items-center justify-between bg-white/3 border border-white/8 rounded-xl px-4 py-3 gap-3"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="text-white font-medium truncate">{invitation.guest_name}</p>
-                  <p className="text-white/30 text-xs mt-0.5">
-                    Créée le {new Date(invitation.created_at).toLocaleDateString('fr-FR')}
-                    {' · '}
-                    Expire le {new Date(invitation.expires_at).toLocaleDateString('fr-FR')}
-                  </p>
+                  {ticket ? (
+                    <>
+                      <p className="text-white font-medium truncate">
+                        {ticket.guest_first_name} {ticket.guest_last_name}
+                      </p>
+                      <p className="text-white/25 text-xs mt-0.5 truncate">
+                        Invitation : {invitation.guest_name}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-white font-medium truncate">{invitation.guest_name}</p>
+                      <p className="text-white/30 text-xs mt-0.5">
+                        Créée le {new Date(invitation.created_at).toLocaleDateString('fr-FR')}
+                        {' · '}
+                        Expire le {new Date(invitation.expires_at).toLocaleDateString('fr-FR')}
+                      </p>
+                    </>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 flex-wrap justify-end shrink-0">
                   {invitation.is_used ? (
