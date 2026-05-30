@@ -1,7 +1,6 @@
 'use client'
 
 import { useActionState, useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { registerGuest } from '@/app/actions'
 import { createSupabaseClient } from '@/lib/supabase/client'
 import type { ActionResult } from '@/lib/types'
@@ -18,9 +17,10 @@ export default function RegisterForm({ token }: { token: string }) {
   const emailRef = useRef<HTMLInputElement>(null)
   const passwordRef = useRef<HTMLInputElement>(null)
   const photoRef = useRef<HTMLInputElement>(null)
-  const router = useRouter()
 
-  // Quand la Server Action réussit, connexion client-side puis redirection
+  // Quand la Server Action réussit, connexion client-side puis navigation HTTP complète.
+  // window.location.href (et non router.push) force le navigateur mobile à relire
+  // tous les cookies avant de charger /dashboard.
   useEffect(() => {
     if (!state.success) return
 
@@ -31,9 +31,9 @@ export default function RegisterForm({ token }: { token: string }) {
     const supabase = createSupabaseClient()
 
     supabase.auth.signInWithPassword({ email, password }).then(({ error }) => {
-      router.push(error ? '/login?registered=1' : '/dashboard')
+      window.location.href = error ? '/login?registered=1' : '/dashboard'
     })
-  }, [state.success, router])
+  }, [state.success])
 
   if (signingIn) {
     return (
