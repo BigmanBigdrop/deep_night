@@ -306,6 +306,35 @@ export async function validateCheckIn(slug: string): Promise<ActionResult<Ticket
 }
 
 // ============================================================
+// ADMIN — Supprimer une invitation non utilisée
+// ============================================================
+export async function deleteInvitation(invitationId: string): Promise<ActionResult> {
+  const supabase = await createSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user || user.app_metadata?.role !== 'admin') {
+    return { success: false, error: 'Non autorise.' }
+  }
+
+  const admin = createSupabaseAdmin()
+
+  // Vérifie que l'invitation n'est pas utilisée avant de supprimer
+  const { data: inv } = await admin
+    .from('invitations')
+    .select('is_used')
+    .eq('id', invitationId)
+    .maybeSingle()
+
+  if (!inv) return { success: false, error: 'Invitation introuvable.' }
+  if (inv.is_used) return { success: false, error: 'Cette invitation a déjà été utilisée. Supprime l\'inscrit depuis la liste des invités.' }
+
+  await admin.from('invitations').delete().eq('id', invitationId)
+
+  revalidatePath('/admin/dashboard')
+  return { success: true }
+}
+
+// ============================================================
 // ADMIN — Supprimer un invité (compte + ticket + invitation + photo)
 // ============================================================
 export async function deleteGuest(ticketId: string): Promise<ActionResult> {

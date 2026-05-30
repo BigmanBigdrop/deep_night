@@ -2,6 +2,7 @@ import { createSupabaseAdmin } from '@/lib/supabase/admin'
 import InvitationForm from './InvitationForm'
 import AnnouncementForm from './AnnouncementForm'
 import AnnouncementItem from './AnnouncementItem'
+import DeleteInvitationButton from './DeleteInvitationButton'
 import type { Invitation, Ticket } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
@@ -80,17 +81,17 @@ export default async function AdminDashboardPage() {
             return (
               <div
                 key={invitation.id}
-                className="flex items-center justify-between bg-white/3 border border-white/8 rounded-xl px-4 py-3"
+                className="flex items-center justify-between bg-white/3 border border-white/8 rounded-xl px-4 py-3 gap-3"
               >
-                <div>
-                  <p className="text-white font-medium">{invitation.guest_name}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white font-medium truncate">{invitation.guest_name}</p>
                   <p className="text-white/30 text-xs mt-0.5">
                     Créée le {new Date(invitation.created_at).toLocaleDateString('fr-FR')}
                     {' · '}
                     Expire le {new Date(invitation.expires_at).toLocaleDateString('fr-FR')}
                   </p>
                 </div>
-                <div className="flex items-center gap-2 flex-wrap justify-end">
+                <div className="flex items-center gap-2 flex-wrap justify-end shrink-0">
                   {invitation.is_used ? (
                     <span className="text-xs bg-green-500/10 text-green-400 border border-green-500/20 px-2.5 py-1 rounded-full">
                       Inscrit
@@ -105,6 +106,12 @@ export default async function AdminDashboardPage() {
                       Entré ✓
                     </span>
                   )}
+                  <DeleteInvitationButton
+                    invitationId={invitation.id}
+                    guestName={invitation.guest_name}
+                    isUsed={invitation.is_used}
+                    ticketId={ticket?.id}
+                  />
                 </div>
               </div>
             )
