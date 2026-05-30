@@ -18,6 +18,16 @@ export default function DrinkSurveyForm() {
   const [state, action, pending] = useActionState(submitDrinkSurvey, initialState)
   const [wantsShots, setWantsShots] = useState(false)
 
+  if (pending) {
+    return (
+      <div className="flex flex-col items-center gap-4 py-12">
+        <Spinner size="lg" />
+        <p className="text-white/50 text-sm animate-pulse">Enregistrement de tes préférences...</p>
+        <p className="text-white/20 text-xs">Ne ferme pas cette page.</p>
+      </div>
+    )
+  }
+
   return (
     <form action={action} className="space-y-6">
       <p className="text-white/40 text-sm">

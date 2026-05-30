@@ -61,11 +61,16 @@ export default function RegisterForm({ token }: { token: string }) {
     })
   }, [state.success])
 
-  if (signingIn) {
+  if (pending || signingIn) {
     return (
       <div className="flex flex-col items-center gap-5 py-16">
         <Spinner size="lg" />
-        <p className="text-white/50 text-sm animate-pulse">Ouverture de ton espace...</p>
+        <p className="text-white/50 text-sm animate-pulse">
+          {signingIn ? 'Ouverture de ton espace...' : 'Création de ton compte...'}
+        </p>
+        <p className="text-white/20 text-xs text-center max-w-xs">
+          Ne ferme pas cette page, cela peut prendre quelques secondes.
+        </p>
       </div>
     )
   }

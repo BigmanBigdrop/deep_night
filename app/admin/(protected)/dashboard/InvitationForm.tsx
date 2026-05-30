@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react'
 import { createInvitation } from '@/app/actions'
 import type { ActionResult } from '@/lib/types'
+import Spinner from '@/components/Spinner'
 
 const initialState: ActionResult<{ link: string }> = { success: false, error: '' }
 
@@ -20,21 +21,31 @@ export default function InvitationForm() {
   }
 
   return (
-    <div className="bg-white/3 border border-white/8 rounded-2xl p-5 space-y-4">
+    <div className="bg-white/3 border border-white/8 rounded-2xl p-5 space-y-4 relative overflow-hidden">
+
+      {/* Overlay plein-cadre pendant la génération */}
+      {pending && (
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center gap-3 z-10 rounded-2xl">
+          <Spinner size="lg" />
+          <p className="text-white/70 text-sm font-medium">Génération du lien...</p>
+        </div>
+      )}
+
       <form action={action} className="flex gap-3">
         <input
           name="guest_name"
           type="text"
           required
+          disabled={pending}
           placeholder="Prénom et nom de l'invité"
-          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/25 focus:outline-none focus:border-brand/50 focus:ring-1 focus:ring-brand/50 transition-colors"
+          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/25 focus:outline-none focus:border-brand/50 focus:ring-1 focus:ring-brand/50 transition-colors disabled:opacity-40"
         />
         <button
           type="submit"
           disabled={pending}
           className="bg-brand hover:bg-brand-light disabled:opacity-50 text-black font-semibold rounded-xl px-5 py-2.5 transition-colors whitespace-nowrap"
         >
-          {pending ? '...' : 'Générer'}
+          Générer
         </button>
       </form>
 

@@ -19,6 +19,15 @@ function LoginForm() {
   const params = useSearchParams()
   const justRegistered = params.get('registered') === '1'
 
+  if (pending) {
+    return (
+      <div className="w-full max-w-sm flex flex-col items-center gap-5 py-20">
+        <Spinner size="lg" />
+        <p className="text-white/50 text-sm animate-pulse">Connexion en cours...</p>
+      </div>
+    )
+  }
+
   return (
     <div className="w-full max-w-sm">
       <div className="flex flex-col items-center mb-10">

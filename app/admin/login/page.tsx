@@ -11,6 +11,15 @@ const initialState: ActionResult = { success: false, error: '' }
 export default function AdminLoginPage() {
   const [state, action, pending] = useActionState(loginAdmin, initialState)
 
+  if (pending) {
+    return (
+      <main className="min-h-screen bg-black flex flex-col items-center justify-center gap-5">
+        <Spinner size="lg" />
+        <p className="text-white/50 text-sm animate-pulse">Connexion en cours...</p>
+      </main>
+    )
+  }
+
   return (
     <main className="min-h-screen bg-black flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm">
