@@ -45,7 +45,7 @@ export default function RegisterForm({ token }: { token: string }) {
   }
 
   return (
-    <form action={action} className="space-y-5" encType="multipart/form-data">
+    <form action={action} className="space-y-5">
       <input type="hidden" name="token" value={token} />
 
       {/* Prénom + Nom */}

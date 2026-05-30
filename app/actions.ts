@@ -116,105 +116,115 @@ export async function registerGuest(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
-  const token = formData.get('token') as string
-  const firstName = (formData.get('first_name') as string)?.trim()
-  const lastName = (formData.get('last_name') as string)?.trim()
-  const ageRaw = formData.get('age') as string
-  const age = ageRaw ? parseInt(ageRaw, 10) : null
-  const email = (formData.get('email') as string)?.trim()
-  const phone = (formData.get('phone') as string)?.trim() || null
-  const password = formData.get('password') as string
-  const passwordConfirm = formData.get('password_confirm') as string
-  const photoFile = formData.get('photo') as File | null
+  try {
+    const token = formData.get('token') as string
+    const firstName = (formData.get('first_name') as string)?.trim()
+    const lastName = (formData.get('last_name') as string)?.trim()
+    const ageRaw = formData.get('age') as string
+    const age = ageRaw ? parseInt(ageRaw, 10) : null
+    const email = (formData.get('email') as string)?.trim()
+    const phone = (formData.get('phone') as string)?.trim() || null
+    const password = formData.get('password') as string
+    const passwordConfirm = formData.get('password_confirm') as string
+    const photoFile = formData.get('photo') as File | null
 
-  if (!firstName || !lastName || !email || !password || !age) {
-    return { success: false, error: 'Tous les champs obligatoires doivent etre remplis.' }
-  }
-
-  if (age < 18 || age > 99) {
-    return { success: false, error: 'Tu dois avoir au moins 18 ans pour participer.' }
-  }
-
-  if (password !== passwordConfirm) {
-    return { success: false, error: 'Les mots de passe ne correspondent pas.' }
-  }
-
-  if (password.length < 8) {
-    return { success: false, error: 'Le mot de passe doit contenir au moins 8 caracteres.' }
-  }
-
-  const admin = createSupabaseAdmin()
-
-  const { data: invitation } = await admin
-    .from('invitations')
-    .select('id')
-    .eq('token', token)
-    .eq('is_used', false)
-    .gt('expires_at', new Date().toISOString())
-    .maybeSingle()
-
-  if (!invitation) {
-    return { success: false, error: "Ce lien d'invitation est invalide ou expire." }
-  }
-
-  // Upload photo si fournie
-  let photoUrl: string | null = null
-  if (photoFile && photoFile.size > 0) {
-    const ext = photoFile.name.split('.').pop() ?? 'jpg'
-    const fileName = `${crypto.randomUUID()}.${ext}`
-    const buffer = await photoFile.arrayBuffer()
-    const { data: uploadData, error: uploadError } = await admin.storage
-      .from('guest-photos')
-      .upload(fileName, buffer, { contentType: photoFile.type })
-
-    if (!uploadError && uploadData) {
-      const { data: urlData } = admin.storage.from('guest-photos').getPublicUrl(uploadData.path)
-      photoUrl = urlData.publicUrl
+    if (!firstName || !lastName || !email || !password || !age) {
+      return { success: false, error: 'Tous les champs obligatoires doivent etre remplis.' }
     }
-  }
 
-  // Cree le compte Supabase Auth
-  const { data: authData, error: authError } = await admin.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-    user_metadata: { first_name: firstName, last_name: lastName },
-    app_metadata: { role: 'guest' },
-  })
-
-  if (authError || !authData.user) {
-    if (photoUrl) {
-      const path = photoUrl.split('/guest-photos/')[1]
-      if (path) await admin.storage.from('guest-photos').remove([path])
+    if (isNaN(age) || age < 18 || age > 99) {
+      return { success: false, error: 'Tu dois avoir au moins 18 ans pour participer.' }
     }
-    if (authError?.message?.includes('already registered')) {
-      return { success: false, error: 'Cet email est deja associe a un compte.' }
+
+    if (password !== passwordConfirm) {
+      return { success: false, error: 'Les mots de passe ne correspondent pas.' }
     }
-    return { success: false, error: 'Erreur lors de la creation du compte.' }
-  }
 
-  // Enregistrement atomique
-  const { error: rpcError } = await admin.rpc('register_guest_atomically', {
-    p_token: token,
-    p_user_id: authData.user.id,
-    p_first_name: firstName,
-    p_last_name: lastName,
-    p_age: age,
-    p_email: email,
-    p_phone: phone,
-    p_photo_url: photoUrl,
-  })
-
-  if (rpcError) {
-    await admin.auth.admin.deleteUser(authData.user.id)
-    if (photoUrl) {
-      const path = photoUrl.split('/guest-photos/')[1]
-      if (path) await admin.storage.from('guest-photos').remove([path])
+    if (password.length < 8) {
+      return { success: false, error: 'Le mot de passe doit contenir au moins 8 caracteres.' }
     }
-    return { success: false, error: "Inscription impossible. Ce lien a peut-etre deja ete utilise." }
-  }
 
-  return { success: true }
+    const admin = createSupabaseAdmin()
+
+    const { data: invitation } = await admin
+      .from('invitations')
+      .select('id')
+      .eq('token', token)
+      .eq('is_used', false)
+      .gt('expires_at', new Date().toISOString())
+      .maybeSingle()
+
+    if (!invitation) {
+      return { success: false, error: "Ce lien d'invitation est invalide ou expire." }
+    }
+
+    // Upload photo si fournie (optionnel — on ignore les erreurs)
+    let photoUrl: string | null = null
+    try {
+      if (photoFile && photoFile.size > 0 && photoFile.name) {
+        const ext = photoFile.name.split('.').pop() ?? 'jpg'
+        const fileName = `${crypto.randomUUID()}.${ext}`
+        const buffer = await photoFile.arrayBuffer()
+        const { data: uploadData } = await admin.storage
+          .from('guest-photos')
+          .upload(fileName, buffer, { contentType: photoFile.type || 'image/jpeg' })
+        if (uploadData) {
+          const { data: urlData } = admin.storage.from('guest-photos').getPublicUrl(uploadData.path)
+          photoUrl = urlData.publicUrl
+        }
+      }
+    } catch {
+      // La photo est optionnelle — on continue sans elle si l'upload échoue
+    }
+
+    // Cree le compte Supabase Auth
+    const { data: authData, error: authError } = await admin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { first_name: firstName, last_name: lastName },
+      app_metadata: { role: 'guest' },
+    })
+
+    if (authError || !authData.user) {
+      if (photoUrl) {
+        const path = photoUrl.split('/guest-photos/')[1]
+        if (path) await admin.storage.from('guest-photos').remove([path]).catch(() => {})
+      }
+      if (authError?.message?.toLowerCase().includes('already registered') ||
+          authError?.message?.toLowerCase().includes('already exists')) {
+        return { success: false, error: 'Cet email est deja associe a un compte.' }
+      }
+      return { success: false, error: `Erreur creation compte: ${authError?.message ?? 'inconnue'}` }
+    }
+
+    // Enregistrement atomique
+    const { error: rpcError } = await admin.rpc('register_guest_atomically', {
+      p_token: token,
+      p_user_id: authData.user.id,
+      p_first_name: firstName,
+      p_last_name: lastName,
+      p_age: age,
+      p_email: email,
+      p_phone: phone,
+      p_photo_url: photoUrl,
+    })
+
+    if (rpcError) {
+      await admin.auth.admin.deleteUser(authData.user.id).catch(() => {})
+      if (photoUrl) {
+        const path = photoUrl.split('/guest-photos/')[1]
+        if (path) await admin.storage.from('guest-photos').remove([path]).catch(() => {})
+      }
+      return { success: false, error: `Inscription impossible: ${rpcError.message}` }
+    }
+
+    return { success: true }
+
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Erreur inattendue'
+    return { success: false, error: `Erreur: ${message}` }
+  }
 }
 
 // ============================================================
