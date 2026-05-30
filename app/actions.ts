@@ -112,11 +112,30 @@ export async function createInvitation(
 // ============================================================
 // INVITE — Inscription via token
 // ============================================================
+// Photo upload séparé — appelé côté client après connexion
+export async function updateGuestPhotoUrl(photoUrl: string): Promise<ActionResult> {
+  try {
+    const supabase = await createSupabaseServer()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'Non authentifie.' }
+
+    await supabase
+      .from('tickets')
+      .update({ guest_photo_url: photoUrl })
+      .eq('user_id', user.id)
+
+    return { success: true }
+  } catch {
+    return { success: true } // Non bloquant
+  }
+}
+
 export async function registerGuest(
   _prev: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
   try {
+    // Champs texte uniquement — pas de fichier dans le Server Action
     const token = formData.get('token') as string
     const firstName = (formData.get('first_name') as string)?.trim()
     const lastName = (formData.get('last_name') as string)?.trim()
@@ -126,7 +145,6 @@ export async function registerGuest(
     const phone = (formData.get('phone') as string)?.trim() || null
     const password = formData.get('password') as string
     const passwordConfirm = formData.get('password_confirm') as string
-    const photoFile = formData.get('photo') as File | null
 
     if (!firstName || !lastName || !email || !password || !age) {
       return { success: false, error: 'Tous les champs obligatoires doivent etre remplis.' }
@@ -158,26 +176,6 @@ export async function registerGuest(
       return { success: false, error: "Ce lien d'invitation est invalide ou expire." }
     }
 
-    // Upload photo si fournie (optionnel — on ignore les erreurs)
-    let photoUrl: string | null = null
-    try {
-      if (photoFile && photoFile.size > 0 && photoFile.name) {
-        const ext = photoFile.name.split('.').pop() ?? 'jpg'
-        const fileName = `${crypto.randomUUID()}.${ext}`
-        const buffer = await photoFile.arrayBuffer()
-        const { data: uploadData } = await admin.storage
-          .from('guest-photos')
-          .upload(fileName, buffer, { contentType: photoFile.type || 'image/jpeg' })
-        if (uploadData) {
-          const { data: urlData } = admin.storage.from('guest-photos').getPublicUrl(uploadData.path)
-          photoUrl = urlData.publicUrl
-        }
-      }
-    } catch {
-      // La photo est optionnelle — on continue sans elle si l'upload échoue
-    }
-
-    // Cree le compte Supabase Auth
     const { data: authData, error: authError } = await admin.auth.admin.createUser({
       email,
       password,
@@ -187,18 +185,13 @@ export async function registerGuest(
     })
 
     if (authError || !authData.user) {
-      if (photoUrl) {
-        const path = photoUrl.split('/guest-photos/')[1]
-        if (path) await admin.storage.from('guest-photos').remove([path]).catch(() => {})
-      }
       if (authError?.message?.toLowerCase().includes('already registered') ||
           authError?.message?.toLowerCase().includes('already exists')) {
         return { success: false, error: 'Cet email est deja associe a un compte.' }
       }
-      return { success: false, error: `Erreur creation compte: ${authError?.message ?? 'inconnue'}` }
+      return { success: false, error: `Erreur: ${authError?.message ?? 'inconnue'}` }
     }
 
-    // Enregistrement atomique
     const { error: rpcError } = await admin.rpc('register_guest_atomically', {
       p_token: token,
       p_user_id: authData.user.id,
@@ -207,15 +200,11 @@ export async function registerGuest(
       p_age: age,
       p_email: email,
       p_phone: phone,
-      p_photo_url: photoUrl,
+      p_photo_url: null, // La photo est uploadée côté client après connexion
     })
 
     if (rpcError) {
       await admin.auth.admin.deleteUser(authData.user.id).catch(() => {})
-      if (photoUrl) {
-        const path = photoUrl.split('/guest-photos/')[1]
-        if (path) await admin.storage.from('guest-photos').remove([path]).catch(() => {})
-      }
       return { success: false, error: `Inscription impossible: ${rpcError.message}` }
     }
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useActionState, useEffect, useRef, useState } from 'react'
-import { registerGuest } from '@/app/actions'
+import { registerGuest, updateGuestPhotoUrl } from '@/app/actions'
 import { createSupabaseClient } from '@/lib/supabase/client'
 import type { ActionResult } from '@/lib/types'
 import Spinner from '@/components/Spinner'
@@ -19,33 +19,59 @@ export default function RegisterForm({ token }: { token: string }) {
   const passwordRef = useRef<HTMLInputElement>(null)
   const photoRef = useRef<HTMLInputElement>(null)
 
-  // Quand la Server Action réussit, connexion client-side puis navigation HTTP complète.
-  // window.location.href (et non router.push) force le navigateur mobile à relire
-  // tous les cookies avant de charger /dashboard.
+  // Connexion client-side après succès du Server Action (texte seulement)
+  // puis upload photo si sélectionnée — puis navigation HTTP complète
   useEffect(() => {
     if (!state.success) return
 
     const email = emailRef.current?.value ?? ''
     const password = passwordRef.current?.value ?? ''
+    const photoFile = photoRef.current?.files?.[0] ?? null
 
     setSigningIn(true)
     const supabase = createSupabaseClient()
 
-    supabase.auth.signInWithPassword({ email, password }).then(({ error }) => {
-      window.location.href = error ? '/login?registered=1' : '/dashboard'
+    supabase.auth.signInWithPassword({ email, password }).then(async ({ error }) => {
+      if (error) {
+        window.location.href = '/login?registered=1'
+        return
+      }
+
+      // Upload photo côté client (après connexion, pas de multipart dans le Server Action)
+      if (photoFile && photoFile.size > 0) {
+        try {
+          const ext = photoFile.name.split('.').pop() ?? 'jpg'
+          const fileName = `${crypto.randomUUID()}.${ext}`
+          const { data: uploadData } = await supabase.storage
+            .from('guest-photos')
+            .upload(fileName, photoFile, { contentType: photoFile.type || 'image/jpeg' })
+
+          if (uploadData) {
+            const { data: urlData } = supabase.storage
+              .from('guest-photos')
+              .getPublicUrl(uploadData.path)
+            await updateGuestPhotoUrl(urlData.publicUrl)
+          }
+        } catch {
+          // Photo optionnelle — on continue sans elle
+        }
+      }
+
+      window.location.href = '/dashboard'
     })
   }, [state.success])
 
   if (signingIn) {
     return (
-      <div className="flex flex-col items-center gap-4 py-12">
-        <div className="w-10 h-10 border-2 border-brand border-t-transparent rounded-full animate-spin" />
-        <p className="text-white/50 text-sm">Ouverture de ton espace...</p>
+      <div className="flex flex-col items-center gap-5 py-16">
+        <Spinner size="lg" />
+        <p className="text-white/50 text-sm animate-pulse">Ouverture de ton espace...</p>
       </div>
     )
   }
 
   return (
+    // Formulaire texte uniquement — pas d'encType multipart
     <form action={action} className="space-y-5">
       <input type="hidden" name="token" value={token} />
 
@@ -107,7 +133,7 @@ export default function RegisterForm({ token }: { token: string }) {
         </p>
       </div>
 
-      {/* Confirmation */}
+      {/* Confirmation mot de passe */}
       <div>
         <label htmlFor="password_confirm" className="block text-sm text-white/60 mb-1.5">
           Confirme le mot de passe <span className="text-brand">*</span>
@@ -117,7 +143,7 @@ export default function RegisterForm({ token }: { token: string }) {
           className={INPUT_CLASS} placeholder="Répète ton mot de passe" />
       </div>
 
-      {/* Photo */}
+      {/* Photo — input caché, géré côté client après connexion */}
       <div>
         <label className="block text-sm text-white/60 mb-1.5">
           Photo <span className="text-white/25 text-xs">(optionnel)</span>
@@ -134,7 +160,8 @@ export default function RegisterForm({ token }: { token: string }) {
             </>
           )}
         </div>
-        <input ref={photoRef} name="photo" type="file"
+        {/* Ce input n'est PAS dans le formulaire soumis au serveur */}
+        <input ref={photoRef} type="file"
           accept="image/jpeg,image/png,image/webp,image/gif" className="hidden"
           onChange={(e) => setPhotoName(e.target.files?.[0]?.name ?? null)} />
       </div>
@@ -147,9 +174,11 @@ export default function RegisterForm({ token }: { token: string }) {
       )}
 
       <button type="submit" disabled={pending}
-        className="w-full bg-brand hover:bg-brand-light disabled:opacity-40 text-black font-bold rounded-xl px-4 py-4 transition-colors text-base"
+        className="w-full bg-brand hover:bg-brand-light disabled:opacity-40 text-black font-bold rounded-xl px-4 py-4 transition-colors text-base flex items-center justify-center gap-2"
       >
-        {pending ? <><Spinner size="sm" className="mr-2" />Inscription en cours...</> : "Je m'inscris"}
+        {pending
+          ? <><Spinner size="sm" />Inscription en cours...</>
+          : "Je m'inscris"}
       </button>
 
       <p className="text-white/20 text-xs text-center">
