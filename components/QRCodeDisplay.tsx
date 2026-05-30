@@ -7,13 +7,12 @@ type Props = {
 }
 
 export default function QRCodeDisplay({ slug }: Props) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
-  const value = `${appUrl}/ticket/${slug}`
-
+  // Le QR code encode uniquement le slug UUID — pas d'URL publique.
+  // Seul le scanner admin sait l'interpréter via validateCheckIn(slug).
   return (
     <div className="flex flex-col items-center gap-4">
       <div className="bg-white p-4 rounded-2xl shadow-lg shadow-brand/10">
-        <QRCodeSVG value={value} size={220} level="H" marginSize={0} />
+        <QRCodeSVG value={slug} size={220} level="H" marginSize={0} />
       </div>
       <div className="text-center">
         <p className="text-white/40 text-xs">Présente ce QR code à l&apos;entrée</p>
