@@ -60,7 +60,7 @@ export default function RegisterForm({ token }: { token: string }) {
         </label>
         <input
           id="phone" name="phone" type="tel"
-          className={INPUT_CLASS} placeholder="+33 6 00 00 00 00"
+          className={INPUT_CLASS} placeholder="+225 07 00 00 00 00"
         />
       </div>
 

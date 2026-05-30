@@ -214,11 +214,7 @@ export async function registerGuest(
     return { success: false, error: "Inscription impossible. Ce lien a peut-etre deja ete utilise." }
   }
 
-  // Connecte l'invite immediatement
-  const serverClient = await createSupabaseServer()
-  await serverClient.auth.signInWithPassword({ email, password })
-
-  redirect('/dashboard')
+  redirect('/login?registered=1')
 }
 
 // ============================================================
